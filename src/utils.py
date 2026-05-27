@@ -40,44 +40,48 @@ def load_user_settings(settings_path: str = "user_settings.json") -> dict:
 
 
 def filter_transactions_by_date(transactions: list[dict], date_str: str) -> list[dict]:
-    """ Фильтрует транзакции в диапазоне от 1-го числа месяца переданной даты
-        до самой переданной даты включительно.
+    """Фильтрует список транзакций по диапазону дат:
+
+    от 1-го числа месяца переданной даты до самой даты включительно.
     """
-    filtered = []
-
-    # Определяем формат входящей даты и превращаем ее в объект datetime
-    try:
-        # Если пришла строка вида "2021-12-21 15:30:00", берем только первую часть "2021-12-21"
-        clean_date_str = date_str.split()[0]
-
-        if "." in clean_date_str:
-            target_date = datetime.strptime(clean_date_str, "%d.%m.%Y")
-        else:
-            target_date = datetime.strptime(clean_date_str, "%Y-%m-%d")
-    except ValueError:
+    if not transactions:
         return []
 
-    # Определяем начало месяца для переданной даты
-    start_of_month = datetime(target_date.year, target_date.month, 1)
+    try:
+        # 1. Принудительно берем только текстовую дату до пробела (строку, а не список)
+        # "21.02.2018 22:34:36" -> "21.02.2018"
+        just_date_str = str(date_str).strip().split()[0]
 
+        # Превращаем в чистый объект даты
+        if "." in just_date_str:
+            target_date = pd.to_datetime(just_date_str, format="%d.%m.%Y").date()
+        else:
+            target_date = pd.to_datetime(just_date_str, format="%Y-%m-%d").date()
+
+        # Вычисляем первое число месяца
+        start_date = target_date.replace(day=1)
+    except Exception:
+        return []
+
+    filtered = []
     for tx in transactions:
         tx_date_raw = tx.get("Дата операции")
-        if not tx_date_raw:
+        if not tx_date_raw or pd.isna(tx_date_raw):
             continue
 
-        # В Excel даты могут быть строками или уже объектами даты. Обрабатываем оба случая:
         try:
-            if isinstance(tx_date_raw, str):
-                # Пробуем стандартный формат даты в выгрузках (например, '25.12.2021 13:50:58')
-                tx_date = datetime.strptime(tx_date_raw.split()[0], "%d.%m.%Y")
+            # 2. Точно так же вытаскиваем чистую дату транзакции до пробела
+            tx_date_str = str(tx_date_raw).strip().split()[0]
+
+            if "." in tx_date_str:
+                tx_date = pd.to_datetime(tx_date_str, format="%d.%m.%Y").date()
             else:
-                # Если pandas уже превратил ячейку в Timestamp/datetime
-                tx_date = pd.to_datetime(tx_date_raw).to_pydatetime()
+                tx_date = pd.to_datetime(tx_date_str, format="%Y-%m-%d").date()
+
+            # 3. Прямое сравнение чистых календарных дней
+            if start_date <= tx_date <= target_date:
+                filtered.append(tx)
         except Exception:
             continue
-
-        # Проверяем, попадает ли транзакция в диапазон [Начало месяца; Целевая дата]
-        if start_of_month <= tx_date <= target_date:
-            filtered.append(tx)
 
     return filtered
