@@ -26,7 +26,7 @@ def investment_bank(month: str, transactions: list[dict], limit: int) -> float:
         # Так как дата в Excel может быть "2021-12-21" или "21.12.2021",
         # мы принудительно приводим её к стандарту ISO (YYYY-MM-DD) через pandas
         try:
-            tx_date_iso = pd.to_datetime(tx_date_raw, dayfirst=True).strftime("%Y-%m")
+            tx_date_iso = pd.to_datetime(tx_date_raw).strftime("%Y-%m")
         except Exception:
             continue
 
