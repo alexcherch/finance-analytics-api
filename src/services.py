@@ -1,4 +1,5 @@
 import math
+import json
 import pandas as pd
 
 
@@ -52,3 +53,44 @@ def investment_bank(month: str, transactions: list[dict], limit: int) -> float:
 
     # Возвращаем общую сумму, округленную до двух знаков после запятой
     return round(total_saved, 2)
+
+
+def simple_search_transactions(transactions: list[dict], query: str) -> str:
+    """Ищет транзакции по совпадению подстроки в описании или категории.
+
+    Поиск нечувствителен к регистру. Возвращает JSON-строку.
+    """
+    if not transactions or not query:
+        return json.dumps([], ensure_ascii=False)
+
+    # Приводим поисковый запрос к нижнему регистру и убираем лишние пробелы
+    query_lower = str(query).strip().lower()
+    matched_transactions = []
+
+    for tx in transactions:
+        # Безопасно достаем описание и категорию, заменяя пустые ячейки (NaN) на пустую строку
+        description = tx.get("Описание")
+        description_str = str(description).lower() if description and not pd.isna(description) else ""
+
+        category = tx.get("Категория")
+        category_str = str(category).lower() if category and not pd.isna(category) else ""
+
+        # Если запрос есть в описании ИЛИ категории — забираем транзакцию
+        if query_lower in description_str or query_lower in category_str:
+
+            # Форматируем дату, чтобы в JSON улетала чистая дата без времени
+            date_raw = tx.get("Дата операции")
+            try:
+                formatted_date = str(date_raw).strip().split()[0]
+            except Exception:
+                formatted_date = str(date_raw)
+
+            matched_transactions.append({
+                "date": formatted_date,
+                "amount": round(tx.get("Сумма платежа", 0), 2),
+                "category": category if category and not pd.isna(category) else "Остальное",
+                "description": description if description and not pd.isna(description) else ""
+            })
+
+    # Возвращаем красивый структурированный JSON с поддержкой кириллицы
+    return json.dumps(matched_transactions, ensure_ascii=False, indent=2)

@@ -1,35 +1,37 @@
 from pathlib import Path
-from src.utils import glob_load_transactions
-from src.services import investment_bank
+import pandas as pd
+from src.reports import spending_by_workday
 
 
-def run_services_test() -> None:
+def run_reports_test() -> None:
     print("=" * 50)
-    print("ЗАПУСК СЕРВИСА «ИНВЕСТКОПИЛКА»")
+    print("ЗАПУСК ОТЧЕТА: РАБОЧИЕ И ВЫХОДНЫЕ ДНИ")
     print("=" * 50)
 
-    # Динамически вычисляем путь к Excel-файлу в корне проекта
+    # Путь к нашему файлу транзакций
     base_dir = Path(__file__).resolve().parents[1]
-    excel_path = base_dir / "data" / "operations.xlsx"
+    excel_path = base_dir / "data" / "my_operations.xlsx"
 
-    # Загружаем ВСЕ транзакции из файла
-    all_transactions = glob_load_transactions(str(excel_path))
-    print(f"Всего строк загружено для анализа: {len(all_transactions)}")
+    # Загружаем Excel напрямую в DataFrame для pandas
+    print("Читаем Excel файл...")
+    df_transactions = pd.read_excel(str(excel_path))
+    print(f"Успешно загружено строк для анализа: {len(df_transactions)}")
 
-    # Настройки для проверки сервиса (укажите ваш рабочий год и месяц)
-    test_month = "2021-12"
-    rounding_limit = 50  # Порог округления (можно протестировать 10, 50 или 100)
+    # Укажем историческую дату (например, конец декабря 2021 года)
+    # Чтобы посмотреть траты за октябрь, ноябрь и декабрь 2021
+    target_date = "31.03.2026 21:16:09"
+    print(f"Анализируем трехмесячное окно до даты: {target_date}\n")
 
-    print(f"Анализируем месяц: {test_month}")
-    print(f"Установленный шаг округления: {rounding_limit} ₽\n")
+    # Вызываем нашу функцию, обернутую в декоратор
+    report_df = spending_by_workday(df_transactions, target_date)
 
-    # Вызываем функцию инвесткопилки
-    money_saved = investment_bank(test_month, all_transactions, rounding_limit)
+    print("РЕЗУЛЬТАТЫ СРЕДНИХ ТРАТ:")
+    print(report_df.to_string(index=False))
 
-    print("РЕЗУЛЬТАТ РАСЧЕТА:")
-    print(f"За месяц {test_month} вам удалось бы накопить: {money_saved} ₽")
+    print("\n" + "=" * 50)
+    print("[ИНФО] Загляни в корень проекта! Там должен появиться новый файл report_workday_*.json")
     print("=" * 50)
 
 
 if __name__ == "__main__":
-    run_services_test()
+    run_reports_test()
