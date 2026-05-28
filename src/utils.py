@@ -1,12 +1,12 @@
 import json
 import os
-from datetime import datetime
+from typing import Optional, cast
 import pandas as pd
 
 
 def glob_load_transactions(file_path: str) -> list[dict]:
-    """ Читает Excel-файл с финансовыми транзакциями
-        и возвращает список словарей
+    """Читает Excel-файл с финансовыми транзакциями
+    и возвращает список словарей
     """
     if not os.path.exists(file_path):
         # Здесь будет: logger.error(f"Файл не найден: {file_path}")
@@ -16,7 +16,7 @@ def glob_load_transactions(file_path: str) -> list[dict]:
         df = pd.read_excel(file_path)
 
         # Заменяем NaN на None для корректной последующей конвертации в JSON
-        df = df.astype(object).where(pd.notnull(df), None)
+        df = df.astype(object).fillna(pd.NA).replace({pd.NA: None})
 
         return df.to_dict(orient="records")
 
@@ -26,15 +26,16 @@ def glob_load_transactions(file_path: str) -> list[dict]:
 
 
 def load_user_settings(settings_path: str = "user_settings.json") -> dict:
-    """ Читает пользовательские настройки из JSON-файла.
-        Возвращает словарь с валютами и акциями
+    """Читает пользовательские настройки из JSON-файла.
+    Возвращает словарь с валютами и акциями
     """
     if not os.path.exists(settings_path):
         return {"user_currencies": [], "user_stocks": []}
 
     try:
         with open(settings_path, "r", encoding="utf-8") as f:
-            return json.load(f)
+            # Метод cast принудительно подсказывает mypy: "Здесь точно dict!"
+            return cast(dict, json.load(f))
     except Exception:
         return {"user_currencies": [], "user_stocks": []}
 

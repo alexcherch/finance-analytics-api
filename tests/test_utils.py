@@ -1,6 +1,7 @@
-from src.views import get_greeting
 import json
-from src.utils import load_user_settings, filter_transactions_by_date
+
+from src.utils import filter_transactions_by_date, load_user_settings
+from src.views import get_greeting
 
 
 def test_get_greeting_morning():
@@ -53,7 +54,7 @@ def test_filter_transactions_by_date_pandas():
         {"Дата операции": "05.02.2018 10:00:00"},  # Попадает
         {"Дата операции": "21.02.2018 23:00:00"},  # Попадает
         {"Дата операции": "25.02.2018 12:00:00"},  # НЕ попадает (после даты отсчета)
-        {"Дата операции": "15.01.2018 00:00:00"}  # НЕ попадает (прошлый месяц)
+        {"Дата операции": "15.01.2018 00:00:00"},  # НЕ попадает (прошлый месяц)
     ]
     # Запускаем фильтр до 21.02.2018 (должен оставить только 2 транзакции февраля)
     result = filter_transactions_by_date(transactions, "21.02.2018 23:59:59")

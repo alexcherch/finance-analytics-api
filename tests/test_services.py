@@ -1,6 +1,6 @@
 import pytest
-from src.services import investment_bank
-from src.services import simple_search_transactions
+
+from src.services import investment_bank, simple_search_transactions
 
 
 @pytest.fixture
@@ -14,7 +14,7 @@ def sample_transactions():
         # Пополнение 5000 руб (доходы игнорируются, должно отложить 0 руб)
         {"Дата операции": "2021-12-17 12:00:00", "Сумма операции": 5000.0},
         # Расход из ДРУГОГО месяца (должен проигнорироваться фильтром дат)
-        {"Дата операции": "2021-11-01 15:00:00", "Сумма операции": -150.0}
+        {"Дата операции": "2021-11-01 15:00:00", "Сумма операции": -150.0},
     ]
 
 
@@ -41,11 +41,12 @@ def test_simple_search_by_category():
     """Проверяет поиск транзакций по категории (нечувствительный к регистру)."""
     transactions = [
         {"Дата операции": "2021-12-22", "Категория": "Супермаркеты", "Описание": "Лента"},
-        {"Дата операции": "2021-12-23", "Категория": "Фастфуд", "Описание": "Макдоналдс"}
+        {"Дата операции": "2021-12-23", "Категория": "Фастфуд", "Описание": "Макдоналдс"},
     ]
     # Ищем слово "супер" в нижнем регистре
     result_json = simple_search_transactions(transactions, "супер")
     import json
+
     result = json.loads(result_json)
 
     assert len(result) == 1
@@ -56,10 +57,11 @@ def test_simple_search_by_description():
     """Проверяет поиск транзакций по описанию."""
     transactions = [
         {"Дата операции": "2021-12-22", "Категория": "Остальное", "Описание": "Покупка на OZON"},
-        {"Дата операции": "2021-12-23", "Категория": "Остальное", "Описание": "Вайлдберриз"}
+        {"Дата операции": "2021-12-23", "Категория": "Остальное", "Описание": "Вайлдберриз"},
     ]
     result_json = simple_search_transactions(transactions, "ozon")
     import json
+
     result = json.loads(result_json)
 
     assert len(result) == 1

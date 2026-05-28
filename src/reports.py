@@ -1,18 +1,19 @@
 import functools
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Any, Callable
+
 import pandas as pd
 
 
-def report_to_file(filename: Optional[str] = None):
+def report_to_file(filename: Optional[str] = None) -> Callable[..., Any]:
     """Декоратор для функций-отчетов.
 
     Сохраняет возвращаемый функцией DataFrame в JSON-файл.
     """
 
-    def decorator(func):
+    def decorator(func):  # type: ignore
         @functools.wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args, **kwargs):  # type: ignore
             # 1. Вызываем саму функцию отчета и получаем DataFrame
             result_df = func(*args, **kwargs)
 
@@ -66,10 +67,8 @@ def spending_by_workday(transactions: pd.DataFrame, date: Optional[str] = None) 
 
     # 4. Фильтруем: берем только нужный период времени и только ТРАТЫ (где Сумма платежа < 0)
     filtered_df = df[
-        (df["Дата операции"] >= start_date) &
-        (df["Дата операции"] <= end_date) &
-        (df["Сумма платежа"] < 0)
-        ].copy()
+        (df["Дата операции"] >= start_date) & (df["Дата операции"] <= end_date) & (df["Сумма платежа"] < 0)
+    ].copy()
 
     # Если после фильтрации ничего не осталось, возвращаем пустую структуру
     if filtered_df.empty:

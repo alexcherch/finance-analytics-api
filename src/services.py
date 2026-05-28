@@ -1,5 +1,6 @@
-import math
 import json
+import math
+
 import pandas as pd
 
 
@@ -85,12 +86,14 @@ def simple_search_transactions(transactions: list[dict], query: str) -> str:
             except Exception:
                 formatted_date = str(date_raw)
 
-            matched_transactions.append({
-                "date": formatted_date,
-                "amount": round(tx.get("Сумма платежа", 0), 2),
-                "category": category if category and not pd.isna(category) else "Остальное",
-                "description": description if description and not pd.isna(description) else ""
-            })
+            matched_transactions.append(
+                {
+                    "date": formatted_date,
+                    "amount": round(tx.get("Сумма платежа", 0), 2),
+                    "category": category if category and not pd.isna(category) else "Остальное",
+                    "description": description if description and not pd.isna(description) else "",
+                }
+            )
 
     # Возвращаем красивый структурированный JSON с поддержкой кириллицы
     return json.dumps(matched_transactions, ensure_ascii=False, indent=2)
