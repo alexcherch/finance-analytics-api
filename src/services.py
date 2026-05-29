@@ -1,7 +1,17 @@
 import json
 import math
-
+import logging
 import pandas as pd
+
+
+logging.basicConfig(
+    filename="app.log",
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    encoding="utf-8"
+)
+logger = logging.getLogger(__name__)
 
 
 def investment_bank(month: str, transactions: list[dict], limit: int) -> float:
@@ -9,7 +19,10 @@ def investment_bank(month: str, transactions: list[dict], limit: int) -> float:
 
     Округляются только расходные операции (где сумма операции < 0).
     """
+    logger.info(f"Запуск сервиса 'Инвесткопилка' для месяца {month} с шагом округления {limit}₽")
+
     if not transactions or not limit:
+        logger.warning("В сервис Инвесткопилка переданы пустые данные или нулевой лимит.")
         return 0.0
 
     total_saved = 0.0
@@ -39,6 +52,9 @@ def investment_bank(month: str, transactions: list[dict], limit: int) -> float:
 
             savings = rounded_amount - spent_amount
             total_saved += savings
+
+    logger.info(
+            logger.info(f"Сервис 'Инвесткопилка' успешно завершил расчет. Итого отложено: {round(total_saved, 2)}₽"))
 
     return round(total_saved, 2)
 

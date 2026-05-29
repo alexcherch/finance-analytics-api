@@ -1,8 +1,19 @@
 import functools
+import logging
 from datetime import datetime
 from typing import Any, Callable, Optional
 
 import pandas as pd
+
+
+logging.basicConfig(
+    filename="app.log",
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    encoding="utf-8"
+)
+logger = logging.getLogger(__name__)
 
 
 def report_to_file(filename: Any = None) -> Callable[..., Any]:
@@ -14,7 +25,14 @@ def report_to_file(filename: Any = None) -> Callable[..., Any]:
     def decorator(func: Any) -> Callable[..., Any]:
         @functools.wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
-            result_df = func(*args, **kwargs)
+            logger.info(f"Старт отчета: функция '{func.__name__}' вызвана.")
+
+            try:
+                result_df = func(*args, **kwargs)
+                logger.info(f"Функция '{func.__name__}' успешно выполнена. Строк в результате: {len(result_df)}")
+            except Exception as e:
+                logger.error(f"Критическая ошибка внутри функции '{func.__name__}': {e}")
+                raise e
 
             if filename and isinstance(filename, str):
                 out_file = filename
@@ -24,6 +42,7 @@ def report_to_file(filename: Any = None) -> Callable[..., Any]:
 
             if isinstance(result_df, pd.DataFrame) and not result_df.empty:
                 result_df.to_json(out_file, orient="records", force_ascii=False, indent=2)
+                logger.info(f"Результат отчета успешно сохранен в файл: {out_file}")
 
             return result_df
 
@@ -43,7 +62,12 @@ def spending_by_workday(transactions: pd.DataFrame, date: Optional[str] = None) 
 
     Если дата не передана, берется текущая дата.
     """
+    logger.info(
+        f"Параметры spending_by_workday: дата отсчета={
+        date if date else 'текущая'}, всего транзакций для анализа={len(transactions)}")
+
     if transactions.empty:
+        logger.warning("На вход spending_by_workday передан пустой DataFrame транзакций!")
         return pd.DataFrame()
 
     if date:
@@ -61,6 +85,7 @@ def spending_by_workday(transactions: pd.DataFrame, date: Optional[str] = None) 
     ].copy()
 
     if filtered_df.empty:
+        logger.warning(f"После фильтрации за 3 месяца не найдено ни одного расхода до даты {end_date}")
         return pd.DataFrame(columns=["Тип дня", "Средние траты"])
 
     filtered_df["Сумма платежа"] = filtered_df["Сумма платежа"].abs()
