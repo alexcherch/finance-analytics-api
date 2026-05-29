@@ -1,10 +1,12 @@
+from typing import Any
+
 import pytest
 
 from src.views import calculate_cards_info, get_currency_rates, get_stock_prices, get_top_5_transactions
 
 
 @pytest.fixture
-def view_sample_transactions():
+def view_sample_transactions() -> list[dict[str, Any]]:
     """Тестовый набор транзакций для проверки логики отображения страниц."""
     return [
         {
@@ -31,7 +33,6 @@ def view_sample_transactions():
             "Дата операции": "23.12.2021 12:00:00",
             "Описание": "Метро",
         },
-        # Транзакция с ошибкой (должна быть проигнорирована при подсчете расходов по картам)
         {
             "Статус": "FAILED",
             "Номер карты": "*4556",
@@ -40,7 +41,6 @@ def view_sample_transactions():
             "Дата операции": "23.12.2021 13:00:00",
             "Описание": "МВидео",
         },
-        # Пополнение счета (доход, игнорируется в тратах по картам)
         {
             "Статус": "OK",
             "Номер карты": "*7197",
@@ -52,27 +52,22 @@ def view_sample_transactions():
     ]
 
 
-def test_calculate_cards_info(view_sample_transactions):
+def test_calculate_cards_info(view_sample_transactions: list[dict[str, Any]]) -> None:
     """Проверяет суммирование расходов по картам и правильность расчета кэшбэка."""
     result = calculate_cards_info(view_sample_transactions)
 
-    assert len(result) == 2  # Должно быть две уникальные карты: 7197 и 4556
-
-    # Превращаем в словарь для быстрой проверки по номерам карт
+    assert len(result) == 2
     cards_dict = {c["last_digits"]: c for c in result}
 
-    # Карта 7197: траты -1000 и -2000 = 3000. Кэшбэк = 30
     assert cards_dict["7197"]["total_spent"] == 3000.0
     assert cards_dict["7197"]["cashback"] == 30.0
 
-    # Карта 4556: трата -500. FAILED транзакция должна проигнорироваться!
     assert cards_dict["4556"]["total_spent"] == 500.0
     assert cards_dict["4556"]["cashback"] == 5.0
 
 
-def test_get_top_5_transactions(view_sample_transactions):
+def test_get_top_5_transactions(view_sample_transactions: list[dict[str, Any]]) -> None:
     """Проверяет, что топ транзакций сортируется по модулю суммы платежа."""
-    # Добавим еще пару операций, чтобы всего было больше 5
     extended_tx = view_sample_transactions + [
         {
             "Статус": "OK",
@@ -92,34 +87,25 @@ def test_get_top_5_transactions(view_sample_transactions):
     ]
 
     top_5 = get_top_5_transactions(extended_tx)
-
-    assert len(top_5) == 5  # Функция должна вернуть ровно 5 элементов
-
-    # Проверяем, что на первом месте самая крупная по модулю транзакция (30000.0)
+    assert len(top_5) == 5
     assert top_5[0]["amount"] == -30000.0
     assert top_5[0]["category"] == "Авиабилеты"
-
-    # На втором месте должно быть пополнение на 15000.0 (так как сортировка по модулю)
     assert top_5[1]["amount"] == 15000.0
 
 
-def test_get_currency_rates_fallback():
+def test_get_currency_rates_fallback() -> None:
     """Проверяет, что без API-ключа функция успешно возвращает дефолтные курсы валют."""
-    # Передаем список нужных валют
     result = get_currency_rates(["USD", "EUR"])
-
     assert len(result) == 2
     assert result[0]["currency"] == "USD"
-    # Проверяем, что rate — это положительное дробное число (float > 0)
     assert isinstance(result[0]["rate"], float)
     assert result[0]["rate"] > 0
 
 
-def test_get_stock_prices_fallback():
+def test_get_stock_prices_fallback() -> None:
     """Проверяет, что при сбое API функция возвращает защитные цены-заглушки для акций."""
     stocks = ["AAPL", "TSLA"]
     result = get_stock_prices(stocks)
-
     assert len(result) == 2
     assert result[0]["stock"] == "AAPL"
     assert isinstance(result[0]["price"], float)

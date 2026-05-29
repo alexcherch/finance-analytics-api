@@ -3,7 +3,7 @@ import pandas as pd
 from src.reports import spending_by_workday
 
 
-def test_spending_by_workday_calculation():
+def test_spending_by_workday_calculation() -> None:
     """Проверяет корректность разделения трат на рабочие/выходные и расчет среднего."""
     # Создаем тестовый DataFrame
     data = {

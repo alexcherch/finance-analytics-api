@@ -9,7 +9,6 @@ from dotenv import load_dotenv
 
 from src.utils import filter_transactions_by_date, glob_load_transactions, load_user_settings
 
-# Загружаем ключи из .env в память приложения при старте модуля
 load_dotenv()
 
 
@@ -26,7 +25,7 @@ def get_greeting(date_time_str: str) -> str:
             return "Добрый вечер"
         else:
             return "Доброй ночи"
-    except Exception:
+    except (ValueError, TypeError):
         return "Добрый день"
 
 
@@ -73,12 +72,10 @@ def get_top_5_transactions(transactions: list[dict]) -> list[dict]:
     for tx in sorted_tx[:5]:
         date_raw = tx.get("Дата операции")
         try:
-            # Превращаем в строку и берем только дату до пробела
             formatted_date = str(date_raw).strip().split()[0]
-        except Exception:
+        except (IndexError, ValueError, TypeError):
             formatted_date = str(date_raw)
 
-        # Проверяем, есть ли поле Категория, если нет или NaN — пишем "Остальное"
         category = tx.get("Категория")
         if not category or pd.isna(category):
             category = "Остальное"
@@ -96,10 +93,7 @@ def get_top_5_transactions(transactions: list[dict]) -> list[dict]:
 
 
 def get_currency_rates(currencies: list[str]) -> list[dict]:
-    """Получает актуальные курсы валют по отношению к рублю (RUB) через ExchangeRate-API.
-
-    При сбоях сети или отсутствии ключа выдает стабильные базовые курсы по ТЗ.
-    """
+    """Получает актуальные курсы валют по отношению к рублю (RUB) через ExchangeRate-API."""
     mock_rates = {"USD": 73.21, "EUR": 87.08}
     api_key = os.getenv("EXCHANGE_API_KEY")
 
@@ -116,24 +110,18 @@ def get_currency_rates(currencies: list[str]) -> list[dict]:
             for currency in currencies:
                 rate_to_rub = rates.get(currency)
                 if rate_to_rub:
-                    # Корректный расчет стоимости 1 иностранной валюты в рублях
                     rub_price = round(1 / rate_to_rub, 2)
                     result.append({"currency": currency, "rate": float(rub_price)})
-    except Exception:
+    except (requests.exceptions.RequestException, ValueError):
         pass
 
-    # Безопасная подстраховка на случай непредвиденных сетевых сбоев
     if not result:
         return [{"currency": c, "rate": mock_rates.get(c, 75.0)} for c in currencies]
     return result
 
 
 def get_stock_prices(stocks: list[str]) -> list[dict]:
-    """Получает актуальную стоимость акций через API.
-
-    При ошибках доступа (код 402/403) или сбоях сети плавно подставляет
-    валидные защитные заглушки float > 0 согласно критериям ТЗ.
-    """
+    """Получает актуальную стоимость акций через API."""
     if not stocks:
         return []
 
@@ -155,10 +143,9 @@ def get_stock_prices(stocks: list[str]) -> list[dict]:
                     price = data[0].get("price")
                     if price is not None:
                         result.append({"stock": stock, "price": float(round(float(price), 2))})
-    except Exception:
+    except (requests.exceptions.RequestException, ValueError):
         pass
 
-    # Если сервер заблокировал запрос (статус 402), плавно страхуемся заглушками
     if not result:
         return [{"stock": s, "price": mock_prices.get(s, 100.0)} for s in stocks]
 
