@@ -5,13 +5,12 @@ from typing import Any, Callable, Optional
 
 import pandas as pd
 
-
 logging.basicConfig(
     filename="app.log",
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
-    encoding="utf-8"
+    encoding="utf-8",
 )
 logger = logging.getLogger(__name__)
 
@@ -62,8 +61,7 @@ def spending_by_workday(transactions: pd.DataFrame, date: Optional[str] = None) 
 
     Если дата не передана, берется текущая дата.
     """
-    logger.info(
-        f"Параметры spending_by_workday: дата отсчета={
+    logger.info(f"Параметры spending_by_workday: дата отсчета={
         date if date else 'текущая'}, всего транзакций для анализа={len(transactions)}")
 
     if transactions.empty:
@@ -71,14 +69,14 @@ def spending_by_workday(transactions: pd.DataFrame, date: Optional[str] = None) 
         return pd.DataFrame()
 
     if date:
-        end_date = pd.to_datetime(date, dayfirst=True)
+        end_date = pd.to_datetime(date)
     else:
         end_date = pd.to_datetime(datetime.now())
 
     start_date = end_date - pd.DateOffset(months=3)
 
     df = transactions.copy()
-    df["Дата операции"] = pd.to_datetime(df["Дата операции"], dayfirst=True, errors="coerce")
+    df["Дата операции"] = pd.to_datetime(df["Дата операции"], errors="coerce")
 
     filtered_df = df[
         (df["Дата операции"] >= start_date) & (df["Дата операции"] <= end_date) & (df["Сумма платежа"] < 0)

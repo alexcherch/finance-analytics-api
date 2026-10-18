@@ -39,22 +39,15 @@ def load_user_settings(settings_path: str = "user_settings.json") -> dict:
 
 def filter_transactions_by_date(transactions: list[dict], date_str: str) -> list[dict]:
     """Фильтрует список транзакций по диапазону дат:
-
     от 1-го числа месяца переданной даты до самой даты включительно.
     """
     if not transactions:
         return []
 
     try:
-        just_date_str = str(date_str).strip().split()[0]
-
-        if "." in just_date_str:
-            target_date = pd.to_datetime(just_date_str, format="%d.%m.%Y").date()
-        else:
-            target_date = pd.to_datetime(just_date_str, format="%Y-%m-%d").date()
-
+        target_date = pd.to_datetime(date_str).date()
         start_date = target_date.replace(day=1)
-    except (ValueError, TypeError, IndexError):
+    except (ValueError, TypeError):
         return []
 
     filtered = []
@@ -64,16 +57,10 @@ def filter_transactions_by_date(transactions: list[dict], date_str: str) -> list
             continue
 
         try:
-            tx_date_str = str(tx_date_raw).strip().split()[0]
-
-            if "." in tx_date_str:
-                tx_date = pd.to_datetime(tx_date_str, format="%d.%m.%Y").date()
-            else:
-                tx_date = pd.to_datetime(tx_date_str, format="%Y-%m-%d").date()
-
+            tx_date = pd.to_datetime(tx_date_raw).date()
             if start_date <= tx_date <= target_date:
                 filtered.append(tx)
-        except (ValueError, TypeError, IndexError):
+        except (ValueError, TypeError):
             continue
 
     return filtered

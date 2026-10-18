@@ -1,15 +1,15 @@
 import json
-import math
 import logging
-import pandas as pd
+import math
 
+import pandas as pd
 
 logging.basicConfig(
     filename="app.log",
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
-    encoding="utf-8"
+    encoding="utf-8",
 )
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ def investment_bank(month: str, transactions: list[dict], limit: int) -> float:
             continue
 
         try:
-            tx_date_iso = pd.to_datetime(tx_date_raw, dayfirst=True).strftime("%Y-%m")
+            tx_date_iso = pd.to_datetime(tx_date_raw).strftime("%Y-%m")
         except (ValueError, TypeError, Exception):
             continue
 

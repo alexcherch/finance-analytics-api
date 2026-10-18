@@ -1,6 +1,5 @@
 import json
 import os
-from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
@@ -15,11 +14,7 @@ load_dotenv()
 def get_greeting(date_time_str: str) -> str:
     """Возвращает приветствие в зависимости от часа переданной даты и времени."""
     try:
-        try:
-            dt = datetime.strptime(date_time_str.strip(), "%Y-%m-%d %H:%M:%S")
-        except ValueError:
-            dt = datetime.strptime(date_time_str.strip(), "%d.%m.%Y %H:%M:%S")
-
+        dt = pd.to_datetime(date_time_str)
         hour = dt.hour
         if 6 <= hour < 12:
             return "Доброе утро"
@@ -182,6 +177,100 @@ def main_page_view(date_time_str: str) -> str:
         "top_transactions": top_transactions,
         "currency_rates": currency_rates,
         "stock_prices": stock_prices,
+    }
+
+    return json.dumps(response_data, ensure_ascii=False, indent=2)
+
+
+def events_page_view(date_time_str: str, date_range: str = "M") -> str:
+    """Главная функция для генерации JSON-ответа для страницы 'События'.
+
+    :param date_time_str: Дата и время в формате YYYY-MM-DD HH:MM:SS или DD.MM.YYYY HH:MM:SS
+    :param date_range: Диапазон данных: W (неделя), M (месяц), Y (год), ALL (все данные до даты)
+    """
+    base_dir = Path(__file__).resolve().parents[1]
+    excel_path = base_dir / "data" / "operations.xlsx"
+    settings = load_user_settings(str(base_dir / "user_settings.json"))
+
+    currencies = settings.get("user_currencies", ["USD", "EUR"])
+    stocks = settings.get("user_stocks", ["AAPL", "AMZN", "GOOGL", "MSFT", "TSLA"])
+
+    all_transactions = glob_load_transactions(str(excel_path))
+
+    # 1. Определяем границы периода
+    try:
+        end_date = pd.to_datetime(date_time_str)
+    except (ValueError, TypeError):
+        return json.dumps({"error": "Неверный формат даты"}, ensure_ascii=False)
+
+    if date_range == "W":
+        start_date = end_date - pd.Timedelta(days=7)
+    elif date_range == "Y":
+        start_date = end_date - pd.DateOffset(years=1)
+    elif date_range == "ALL":
+        start_date = pd.to_datetime("1900-01-01")  # Условно "все данные"
+    else:  # По умолчанию "M"
+        start_date = end_date.replace(day=1)
+
+    # 2. Фильтруем данные
+    df = pd.DataFrame(all_transactions)
+    if df.empty:
+        return json.dumps({"error": "Нет данных"}, ensure_ascii=False)
+
+    df["Дата операции"] = pd.to_datetime(df["Дата операции"], dayfirst=True, errors="coerce")
+    filtered_df = df[(df["Дата операции"] >= start_date) & (df["Дата операции"] <= end_date)].copy()
+
+    # 3. Считаем Расходы и Поступления
+    expenses_df = filtered_df[filtered_df["Сумма платежа"] < 0].copy()
+    income_df = filtered_df[filtered_df["Сумма платежа"] > 0].copy()
+
+    expenses_df["Сумма платежа"] = expenses_df["Сумма платежа"].abs()
+
+    # --- Логика для РАСХОДОВ ---
+    total_expenses = int(expenses_df["Сумма платежа"].sum())
+
+    # Разделяем на "Переводы и наличные" и "Основные"
+    transfer_cats = ["Переводы", "Наличные"]
+    main_expenses_df = expenses_df[~expenses_df["Категория"].isin(transfer_cats)]
+    transfer_expenses_df = expenses_df[expenses_df["Категория"].isin(transfer_cats)]
+
+    # Группируем основные расходы
+    main_grouped = main_expenses_df.groupby("Категория")["Сумма платежа"].sum().reset_index()
+    main_grouped = main_grouped.sort_values(by="Сумма платежа", ascending=False)
+
+    # Топ-7 и "Остальное"
+    main_list = []
+    if len(main_grouped) > 7:
+        top_7 = main_grouped.head(7)
+        other_sum = main_grouped.iloc[7:]["Сумма платежа"].sum()
+        for _, row in top_7.iterrows():
+            main_list.append({"category": row["Категория"], "amount": int(round(row["Сумма платежа"]))})
+        main_list.append({"category": "Остальное", "amount": int(round(other_sum))})
+    else:
+        for _, row in main_grouped.iterrows():
+            main_list.append({"category": row["Категория"], "amount": int(round(row["Сумма платежа"]))})
+
+    # Группируем переводы
+    transfer_grouped = transfer_expenses_df.groupby("Категория")["Сумма платежа"].sum().reset_index()
+    transfer_grouped = transfer_grouped.sort_values(by="Сумма платежа", ascending=False)
+    transfer_list = []
+    for _, row in transfer_grouped.iterrows():
+        transfer_list.append({"category": row["Категория"], "amount": int(round(row["Сумма платежа"]))})
+
+    # --- Логика для ПОСТУПЛЕНИЙ ---
+    total_income = int(income_df["Сумма платежа"].sum())
+    income_grouped = income_df.groupby("Категория")["Сумма платежа"].sum().reset_index()
+    income_grouped = income_grouped.sort_values(by="Сумма платежа", ascending=False)
+    income_list = []
+    for _, row in income_grouped.iterrows():
+        income_list.append({"category": row["Категория"], "amount": int(round(row["Сумма платежа"]))})
+
+    # 4. Собираем ответ
+    response_data = {
+        "expenses": {"total_amount": total_expenses, "main": main_list, "transfers_and_cash": transfer_list},
+        "income": {"total_amount": total_income, "main": income_list},
+        "currency_rates": get_currency_rates(currencies),
+        "stock_prices": get_stock_prices(stocks),
     }
 
     return json.dumps(response_data, ensure_ascii=False, indent=2)
