@@ -53,8 +53,7 @@ def investment_bank(month: str, transactions: list[dict], limit: int) -> float:
             savings = rounded_amount - spent_amount
             total_saved += savings
 
-    logger.info(
-            logger.info(f"Сервис 'Инвесткопилка' успешно завершил расчет. Итого отложено: {round(total_saved, 2)}₽"))
+    logger.info(f"Сервис 'Инвесткопилка' успешно завершил расчет. Итого отложено: {round(total_saved, 2)}₽")
 
     return round(total_saved, 2)
 
