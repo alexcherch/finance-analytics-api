@@ -15,7 +15,11 @@ load_dotenv()
 def get_greeting(date_time_str: str) -> str:
     """Возвращает приветствие в зависимости от часа переданной даты и времени."""
     try:
-        dt = datetime.strptime(date_time_str.strip(), "%d.%m.%Y %H:%M:%S")
+        try:
+            dt = datetime.strptime(date_time_str.strip(), "%Y-%m-%d %H:%M:%S")
+        except ValueError:
+            dt = datetime.strptime(date_time_str.strip(), "%d.%m.%Y %H:%M:%S")
+
         hour = dt.hour
         if 6 <= hour < 12:
             return "Доброе утро"
