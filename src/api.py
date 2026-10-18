@@ -9,7 +9,7 @@ from src.views import events_page_view, main_page_view
 
 app = FastAPI(
     title="Finance Analytics API",
-    description="API для анализа финансовых транзакций (на основе курсовой работы)",
+    description="REST API для анализа финансовых транзакций из Excel-выгрузок.",
     version="1.0.0",
 )
 
