@@ -89,10 +89,14 @@ poetry run uvicorn src.api:app --reload
 
 | Метод | Эндпоинт | Параметры | Описание |
 | :--- | :--- | :--- | :--- |
-| GET | `/views/main` | `dt` (YYYY-MM-DD HH:MM:SS) | Главная страница: приветствие, карты, топ-5 транзакций, валюты, акции |
+| GET | `/views/main` | `dt` (YYYY-MM-DD HH:MM:SS) | Главная страница: приветствие, карты, топ-5, валюты, акции |
+| GET | `/views/events` | `dt` (YYYY-MM-DD HH:MM:SS), `range` (W/M/Y/ALL) | Страница «События»: расходы и поступления по категориям |
 | GET | `/services/invest` | `month` (YYYY-MM), `limit` (10/50/100) | Сервис «Инвесткопилка» |
 | GET | `/services/search` | `query` (строка) | Поиск по описанию и категории |
-| GET | `/reports/workday` | `date` (DD.MM.YYYY, опционально) | Средние траты в рабочий/выходной день |
+| GET | `/services/cashback` | `year` (число), `month` (1-12) | Сервис «Выгодные категории кешбэка» |
+| GET | `/reports/workday` | `date` (YYYY-MM-DD, опционально) | Средние траты в рабочий/выходной день |
+| GET | `/reports/category` | `category` (строка), `date` (YYYY-MM-DD, опционально) | Траты по категории за 3 месяца |
+| GET | `/reports/weekday` | `date` (YYYY-MM-DD, опционально) | Средние траты по дням недели |
 
 ### Скриншот документации (Swagger UI):
 ![Swagger UI](docs/screenshot_swagger.png)
