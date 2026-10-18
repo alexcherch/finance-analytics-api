@@ -5,13 +5,12 @@ from typing import Any, Callable, Optional
 
 import pandas as pd
 
-
 logging.basicConfig(
     filename="app.log",
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
-    encoding="utf-8"
+    encoding="utf-8",
 )
 logger = logging.getLogger(__name__)
 
@@ -62,8 +61,7 @@ def spending_by_workday(transactions: pd.DataFrame, date: Optional[str] = None) 
 
     Если дата не передана, берется текущая дата.
     """
-    logger.info(
-        f"Параметры spending_by_workday: дата отсчета={
+    logger.info(f"Параметры spending_by_workday: дата отсчета={
         date if date else 'текущая'}, всего транзакций для анализа={len(transactions)}")
 
     if transactions.empty:
@@ -71,14 +69,14 @@ def spending_by_workday(transactions: pd.DataFrame, date: Optional[str] = None) 
         return pd.DataFrame()
 
     if date:
-        end_date = pd.to_datetime(date, dayfirst=True)
+        end_date = pd.to_datetime(date)
     else:
         end_date = pd.to_datetime(datetime.now())
 
     start_date = end_date - pd.DateOffset(months=3)
 
     df = transactions.copy()
-    df["Дата операции"] = pd.to_datetime(df["Дата операции"], dayfirst=True, errors="coerce")
+    df["Дата операции"] = pd.to_datetime(df["Дата операции"], errors="coerce")
 
     filtered_df = df[
         (df["Дата операции"] >= start_date) & (df["Дата операции"] <= end_date) & (df["Сумма платежа"] < 0)
@@ -98,5 +96,81 @@ def spending_by_workday(transactions: pd.DataFrame, date: Optional[str] = None) 
 
     result_df.columns = ["Тип дня", "Средние траты"]
     result_df["Средние траты"] = result_df["Средние траты"].round(0).astype(int)
+
+    return result_df
+
+
+@report_to_file
+def spending_by_category(transactions: pd.DataFrame, category: str, date: Optional[str] = None) -> pd.DataFrame:
+    """Возвращает траты по заданной категории за последние три месяца от переданной даты."""
+    logger.info(f"Параметры spending_by_category: категория={category}, дата={date if date else 'текущая'}")
+
+    if transactions.empty:
+        return pd.DataFrame()
+
+    if date:
+        end_date = pd.to_datetime(date)
+    else:
+        end_date = pd.to_datetime(datetime.now())
+
+    start_date = end_date - pd.DateOffset(months=3)
+
+    df = transactions.copy()
+    df["Дата операции"] = pd.to_datetime(df["Дата операции"], errors="coerce")
+
+    filtered_df = df[
+        (df["Дата операции"] >= start_date) &
+        (df["Дата операции"] <= end_date) &
+        (df["Категория"] == category) &
+        (df["Сумма платежа"] < 0)
+        ].copy()
+
+    if filtered_df.empty:
+        return pd.DataFrame(columns=["Дата операции", "Сумма платежа", "Категория"])
+
+    filtered_df["Сумма платежа"] = filtered_df["Сумма платежа"].abs()
+
+    return filtered_df[["Дата операции", "Сумма платежа", "Категория"]]
+
+
+@report_to_file
+def spending_by_weekday(transactions: pd.DataFrame, date: Optional[str] = None) -> pd.DataFrame:
+    """Возвращает средние траты в каждый из дней недели за последние три месяца."""
+    if transactions.empty:
+        return pd.DataFrame()
+
+    if date:
+        end_date = pd.to_datetime(date)
+    else:
+        end_date = pd.to_datetime(datetime.now())
+
+    start_date = end_date - pd.DateOffset(months=3)
+
+    df = transactions.copy()
+    df["Дата операции"] = pd.to_datetime(df["Дата операции"], errors="coerce")
+
+    filtered_df = df[
+        (df["Дата операции"] >= start_date) &
+        (df["Дата операции"] <= end_date) &
+        (df["Сумма платежа"] < 0)
+        ].copy()
+
+    if filtered_df.empty:
+        return pd.DataFrame(columns=["День недели", "Средние траты"])
+
+    filtered_df["Сумма платежа"] = filtered_df["Сумма платежа"].abs()
+
+    # 0 - Понедельник, 6 - Воскресенье
+    days_map = {0: "Понедельник", 1: "Вторник", 2: "Среда", 3: "Четверг", 4: "Пятница", 5: "Суббота", 6: "Воскресенье"}
+    filtered_df["День недели"] = filtered_df["Дата операции"].dt.weekday.map(days_map)
+
+    result_df = filtered_df.groupby("День недели", as_index=False)[["Сумма платежа"]].mean()
+    result_df.columns = ["День недели", "Средние траты"]
+    result_df["Средние траты"] = result_df["Средние траты"].round(0).astype(int)
+
+    # Сортируем по порядку дней недели
+    order = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"]
+    result_df["День недели"] = pd.Categorical(result_df["День недели"], categories=order, ordered=True)
+    result_df = result_df.sort_values("День недели")
 
     return result_df

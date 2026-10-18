@@ -1,15 +1,15 @@
 import json
-import math
 import logging
-import pandas as pd
+import math
 
+import pandas as pd
 
 logging.basicConfig(
     filename="app.log",
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
-    encoding="utf-8"
+    encoding="utf-8",
 )
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ def investment_bank(month: str, transactions: list[dict], limit: int) -> float:
             continue
 
         try:
-            tx_date_iso = pd.to_datetime(tx_date_raw, dayfirst=True).strftime("%Y-%m")
+            tx_date_iso = pd.to_datetime(tx_date_raw).strftime("%Y-%m")
         except (ValueError, TypeError, Exception):
             continue
 
@@ -91,3 +91,30 @@ def simple_search_transactions(transactions: list[dict], query: str) -> str:
             )
 
     return json.dumps(matched_transactions, ensure_ascii=False, indent=2)
+
+
+def cashback_categories(transactions: list[dict], year: int, month: int) -> dict:
+    """Анализирует, сколько на каждой категории можно заработать кешбэка (1%) в указанном месяце."""
+    if not transactions:
+        return {}
+
+    result = {}
+    for tx in transactions:
+        tx_date_raw = tx.get("Дата операции")
+        if not tx_date_raw or pd.isna(tx_date_raw):
+            continue
+
+        try:
+            tx_date = pd.to_datetime(tx_date_raw)
+            if tx_date.year == year and tx_date.month == month:
+                amount = tx.get("Сумма платежа")
+                if isinstance(amount, (int, float)) and amount < 0:
+                    category = tx.get("Категория", "Остальное")
+                    # Считаем 1% от трат как потенциальный кешбэк
+                    cashback = abs(amount) * 0.01
+                    result[category] = result.get(category, 0.0) + cashback
+        except (ValueError, TypeError):
+            continue
+
+    # Округляем до 2 знаков
+    return {k: round(v, 2) for k, v in sorted(result.items(), key=lambda item: item[1], reverse=True)}

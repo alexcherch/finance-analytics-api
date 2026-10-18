@@ -6,22 +6,22 @@ from src.views import get_greeting
 
 def test_get_greeting_morning() -> None:
     """Проверяет утреннее приветствие (06:00 - 11:59)."""
-    assert get_greeting("21.02.2018 09:15:00") == "Доброе утро"
+    assert get_greeting("2018-02-21 09:15:00") == "Доброе утро"
 
 
 def test_get_greeting_day() -> None:
     """Проверяет дневное приветствие (12:00 - 17:59)."""
-    assert get_greeting("21.02.2018 14:30:00") == "Добрый день"
+    assert get_greeting("2018-02-21 14:30:00") == "Добрый день"
 
 
 def test_get_greeting_evening() -> None:
     """Проверяет вечернее приветствие (18:00 - 22:59)."""
-    assert get_greeting("21.02.2018 20:00:00") == "Добрый вечер"
+    assert get_greeting("2018-02-21 20:00:00") == "Добрый вечер"
 
 
 def test_get_greeting_night() -> None:
     """Проверяет ночное приветствие (23:00 - 05:59)."""
-    assert get_greeting("21.02.2018 01:00:00") == "Доброй ночи"
+    assert get_greeting("2018-02-21 01:00:00") == "Доброй ночи"
 
 
 def test_get_greeting_invalid_format() -> None:
@@ -52,10 +52,10 @@ def test_load_user_settings_file_missing() -> None:
 def test_filter_transactions_by_date_pandas() -> None:
     """Проверяет фильтрацию транзакций по диапазону дат."""
     transactions = [
-        {"Дата операции": "05.02.2018 10:00:00"},
-        {"Дата операции": "21.02.2018 23:00:00"},
-        {"Дата операции": "25.02.2018 12:00:00"},
-        {"Дата операции": "15.01.2018 00:00:00"},
+        {"Дата операции": "2018-02-05 10:00:00"},
+        {"Дата операции": "2018-02-21 23:00:00"},
+        {"Дата операции": "2018-02-25 12:00:00"},
+        {"Дата операции": "2018-01-15 00:00:00"},
     ]
-    result = filter_transactions_by_date(transactions, "21.02.2018 23:59:59")
+    result = filter_transactions_by_date(transactions, "2018-02-21 23:59:59")
     assert len(result) == 2
